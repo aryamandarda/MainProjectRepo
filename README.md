@@ -1,2 +1,2 @@
 # MainProjectRepo
-An overview of most of the projects I have worked on since pursuing my passion for Computer Science and Machine Learning!
+An overview of some of the projects I have worked on since pursuing my passion for Machine Learning at/ outside of Berkeley.
