@@ -4,6 +4,8 @@ aryaman_darda@berkeley.edu
 
 Description:
 
+To see the images and my website, use this link: https://inst.eecs.berkeley.edu/~cs180/fa23/upload/files/proj1/aryaman_darda
+
 CS180_proj1.ipynb: This is the single notebook needed to run the code. It contains all the functions and can be run in order of cell arrangement. It is pre-saved with the results of the code for the grader to view with ease. 
 
 Note: I have deleted the "data" folder to make it easier to submit. However, the code requires a data folder to be present in the same directory as the notebook. Hopefully you can work around this minor issue because I didn't have any other choice. 
