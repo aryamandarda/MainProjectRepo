@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorizing the Prokudin-Gorskii Photo Collection</title>
+    <style>
+        /* Add some basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        img {
+            max-width: 100%;  /* Makes sure images don't exceed their container's width */
+            margin-top: 20px;
+        }
+        caption {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Colorizing the Prokudin-Gorskii Photo Collection</h1>
+<p>
+    <strong>Name:</strong>Aryaman Darda<br>
+    <strong>Email:</strong> <a href="mailto:aryaman_darda@berkeley.edu">aryaman_darda@berkeley.edu</a><br>
+    <strong>SID:</strong>3035703514
+</p>
+
+<h2>Overview</h2>
+<p>
+The goal of this assignment is to take the digitized Prokudin-Gorskii glass plate images and, using image processing techniques, automatically produce a color image with as few visual artifacts as possible. In order to do this, I had to extract the three color channel images, place them on top of each other, and align them so that they form a single RGB color image.
+</p>
+
+<h2>Approach</h2>
+
+<h3>Single-Scale Alignment</h3>
+<p>
+The process of alignment identifies the displacement vector (x, y) required to adjust the overlaid image so it matches the baseline image. We first align the green channel with the blue, followed by adjusting the red channel to match the blue.
+<br>
+<br>
+A straightforward method is a comprehensive search over potential shifts, evaluating each using a specific image comparison measure, and selecting the shift that yields the highest score. A range of [-15, 15] coupled with the sum of squared differences as the comparison metric proved effective for images of lower resolution. 
+<br>
+<br>
+Initially, I did have problems aligning some images. I figured it was to do with either the brightnesses of each of the plates or the noisy borders within each image. I address these problems in the "Bells & Whistles" Section. 
+</p>
+
+<h3>Image Pyramid</h3>
+<p>
+Although, exhaustive search worked well for low-resolution images, this method proved to be too slow for the higher resolution images. To solve this problem, I implemented a basic image pyramid algorithm. The idea of image pyramid is that once an alignment is found on a small-resolution image, it is safe to search in a smaller region in the high-resolution image -- thus speed up the process.
+<br>
+<br>
+The algorithm works by recursively scaling the image down until it is of comparable resolution to the low resolution images. I then call the single-scale alignment algorithm on the smallest image and recursively adjust the shifts (multiple by 2) to get the alignment correct on a larger scale. I then do an exhaustive search in a range of [-5, 5] to determine the final alignment of the large scale negatives. 
+</p>
+
+<h3>Bells & Whistles</h3>
+<h4>Edge Detection as Feature</h4>
+<p>
+To account for the alignment issues with some of the images, I decided to use different features in the alignment algorithm. I derived "Canny" edges of the images and used this edge information as the input into the alignment and scoring functions instead of the raw pixel values. The results were remarkable and I ended up getting perfect alignment in all the images!
+</p>
+<h4>Auto Cropping</h4>
+<p>
+The output images, when re-colourized, would often look ugly around the borders due to noise present in the images when they were captured. To get rid of these noisy, off-colour borders, I decided to once again use the Canny edges of the original image as input into a crop detection function. The function looks at 4 rectangular regions around the borders of the image and looks for long edges to remove. These long edges are well represented by the Canny edges. 
+<br>
+<br>
+I return the border lengths to be cropped for each plate and then crop the biggest possible border (max values found for each of the 4 borders from the 3 plates) as the last step of image processing. 
+<br>
+<br>
+The results are truly remarkable and a decent amount of border noise from each of the images is removed. We can see the results on the Emir of Bukhara’s image: <br>
+<figure>
+    <img src="results/emir_naive.jpg" alt="Emir of Bukhara" width="350" height="350">
+    <caption>1. Naive image pyramid and single-scale align based on raw pixel values as features.</caption>
+</figure>
+
+<figure>
+    <img src="results/emir_no_crop.jpg" alt="Emir of Bukhara" width="350" height="350">
+    <caption>2. Image pyramid and single-scale align based on detected edges as features.</caption>
+</figure>
+
+<figure>
+    <img src="results/emir_recon.jpg" alt="Emir of Bukhara" width="350" height="350">
+    <caption>3. Auto cropping and image pyramid algorithm using detected edges as features.</caption>
+</figure>
+</p>
+
+<h2>Results</h2>
+<p>
+These are the results for the 14 images provided as the core dataset along with 5 images from the collection chosen by me. Red and green plate shift values are indicated for each image.
+</p>
+
+<h3>Original Dataset</h3>
+<!-- Loop through your images -->
+<figure>
+    <img src="results/cathedral_recon.jpg" alt="Cathedral" width="350" height="350">
+    <caption>Green Shift, Red Shift: [5, 2], [12, 3]</caption>
+</figure>
+
+<figure>
+    <img src="results/monastery_recon.jpg" alt="Monastery" width="350" height="350">
+    <caption>Green Shift, Red Shift: [-3, 2], [3, 2]</caption>
+</figure>
+
+<figure>
+    <img src="results/tobolsk_recon.jpg" alt="Tobolsk" width="350" height="350">
+    <caption>Green Shift, Red Shift: [3, 2], [6, 3]</caption>
+</figure>
+
+<figure>
+    <img src="results/emir_recon.jpg" alt="Emir of Bukhara" width="350" height="350">
+    <caption>Green Shift, Red Shift: [49, 23], [107, 40]</caption>
+</figure>
+
+<figure>
+    <img src="results/church_recon.jpg" alt="Church" width="350" height="350">
+    <caption>Green Shift, Red Shift: [25, 4], [58, -4]</caption>
+</figure>
+
+<figure>
+    <img src="results/three_generations_recon.jpg" alt="Three Generations" width="350" height="350">
+    <caption>Green Shift, Red Shift: [56, 11], [111, 7]</caption>
+</figure>
+
+<figure>
+    <img src="results/melons_recon.jpg" alt="Melons" width="350" height="350">
+    <caption>Green Shift, Red Shift: [79, 9], [182, 11]</caption>
+</figure>
+
+<figure>
+    <img src="results/onion_church_recon.jpg" alt="Onion Church" width="350" height="350">
+    <caption>Green Shift, Red Shift: [52, 24], [107, 34]</caption>
+</figure>
+
+<figure>
+    <img src="results/train_recon.jpg" alt="Train" width="350" height="350">
+    <caption>Green Shift, Red Shift: [48, 2], [84, 28]</caption>
+</figure>
+
+<figure>
+    <img src="results/icon_recon.jpg" alt="Icon" width="350" height="350">
+    <caption>Green Shift, Red Shift: [38, 16], [88, 22]</caption>
+</figure>
+
+<figure>
+    <img src="results/self_portrait_recon.jpg" alt="Self Portrait" width="350" height="350">
+    <caption>Green Shift, Red Shift: [77, 29], [175, 37]</caption>
+</figure>
+
+<figure>
+    <img src="results/harvesters_recon.jpg" alt="Harvesters" width="350" height="350">
+    <caption>Green Shift, Red Shift: [55, 10], [117, 11]</caption>
+</figure>
+
+<figure>
+    <img src="results/sculpture_recon.jpg" alt="Sculpture" width="350" height="350">
+    <caption>Green Shift, Red Shift: [33, -11], [140, -27]</caption>
+</figure>
+
+<figure>
+    <img src="results/lady_recon.jpg" alt="Lady" width="350" height="350">
+    <caption>Green Shift, Red Shift: [56, 10], [120, 13]</caption>
+</figure>
+
+<h3>Chosen Dataset</h3>
+<figure>
+    <img src="results/churchmural_recon.jpg" alt="Church Mural" width="350" height="350">
+    <caption>Green Shift, Red Shift: [2, 2], [6, 2]</caption>
+</figure>
+
+<figure>
+    <img src="results/forest_recon.jpg" alt="Forest" width="350" height="350">
+    <caption>Green Shift, Red Shift: [5, -2], [12, -5]</caption>
+</figure>
+
+<figure>
+    <img src="results/oldman_recon.jpg" alt="Old Man" width="350" height="350">
+    <caption>Green Shift, Red Shift: [5, -2], [11, -6]</caption>
+</figure>
+
+<figure>
+    <img src="results/village_recon.jpg" alt="Village" width="350" height="350">
+    <caption>Green Shift, Red Shift: [3, 0], [14, 0]</caption>
+</figure>
+
+<figure>
+    <img src="results/groupOfChildren_recon.jpg" alt="Children" width="350" height="350">
+    <caption>Green Shift, Red Shift: [7, 4], [14, 5]</caption>
+</figure>
+
+<!-- Repeat similar blocks for all 15 images -->
+
+</body>
+</html>
