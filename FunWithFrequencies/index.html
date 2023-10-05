@@ -1,0 +1,597 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<title>CS 180 Fun with Filters and Frequencies</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 180: Introduction to Computational Photography and Computer Vision</h1>
+<h1 align="middle">Project 2: Fun with Filters and Frequencies</h1>
+<h2 align="middle">Aryaman Darda, 3035703514, aryaman_darda@berkeley.edu</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>
+  This project involved experimenting with various filters to in order to manipulate images, playing around with image frequencies to alter original image representations, and blending different images in a seamless manner.
+</p>
+<p>
+  I was able to learn many techniques and tricks to play around with images during this project. One of the most interesting things I learned was the multiresolution blending of images by using the most basic filter masks.
+  All techniques in this project were foundational, in my opinion, yet highly effective in their respective applications. 
+</p>
+
+<h2 align="middle">Part 1: Fun with Filters</h2>
+
+<h3 align="middle">Part 1.1: Finite Difference Operator</h3>
+<p>
+  In this part of the project, the image of a cameraman is convolved with finite differnce operators \(D_{x} = [1 -1]\) and \(D_{y} = [1 -1]^{T} \) to get a gradient magnitude image. This gradient
+  magnitude image is obtained by convolving copies of the cameraman image with both finite difference operators and then taking the magnitude: \( \sqrt{(D_x * cameraman)^2 + (D_y * cameraman)^2} \) and the operations occur pixel wise.
+  I then try to sharpen the edges of the gradient magnitude image by binarizing the image using a threshold = 0.1 * np.max(gradient_magnitude).
+</p>
+<p>
+  Here are the results of the first part of the project:
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="data/cameraman.png" align="middle" width="400px"/>
+          <figcaption align="middle">Original image</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_1_partialX.jpg" align="middle" width="300px"/>
+          <figcaption align="middle">Convolution with FDO in x-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_1_partialY.jpg" align="middle" width="300px"/>
+          <figcaption align="middle">Convolution with FDO in y-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_1_gradMag.jpg" align="middle" width="300px"/>
+          <figcaption align="middle">Gradient Magnitude Image</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_1_gradMagBin.jpg" align="middle" width="300px"/>
+          <figcaption align="middle">Binarized Gradient Magnitude Image</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+<h3 align="middle">Part 1.2: Derivative of Gaussian Filter</h3>
+<p>
+  I now experiment by using a Gaussian filter for the convolution process. To craft this Gaussian filter, I utilize the `cv2.getGaussianKernel(k, sigma)` fucntion. I then take the outer product of the Guassian with itself to get the final 2D filter.
+  I used a kernal size of 9 and sigma of 1.7. The process is initiated by blurring the image with this Gaussian filter and the rest of the computation is similar  to 1.1.
+</p>
+<p>
+  These are the results of the process:
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/cameraman_2_blurred.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blurred cameraman image</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_2_partialX.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution with FDO in x-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_2_partialY.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution with FDO in y-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_2_gradMag.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Gradient Magnitude Image</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_2_gradMagBin.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Binarized Gradient Magnitude Image</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+<p>
+  When comparing the convolution of the original and blurred cameraman images with the FODs, the blurred image results in darker outputs with more pronounced edges. 
+  The gradient magnitude of the blurred image appears more faded than that of the original. Additionally, after applying the appropriate threshold, the edge depiction of the blurred image shows less
+  noise and has more defined white outlines, while the original image's edges seem grainier.
+</p>
+<p>
+  I then tried an alternate approach which involved computing 1 convolution instead of 2. I directly convolve the Guassian filter with each of the FODs and then convolve each with a copy of the cameraman image.
+  The rest of the process is similar to 1.1. I used the same threshold of 0.12 and notice very little difference between the outputs of both approaches of 1.2.
+</p>
+<p>
+  Here are the results of this alternate process:
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/cameraman_3_DOGX.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution of Guassian with FOD in x-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_3_DOGY.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution of Guassian with FOD in y-plane</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_3_partialDOGX.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution of Image with \(DoG_x\)</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_3_partialDOGY.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Convolution of Image with \(DoG_y\)</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_3_gradMag.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Gradient Magnitude Image</figcaption>
+        </td>
+        <td>
+          <img src="output/cameraman_3_gradMagBin.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Binarized Gradient Magnitude Image</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+<h2 align="middle">Part 2: Fun with Frequencies!</h2>
+
+<h3 align="middle">Part 2.1: Image "Sharpening"</h3>
+<p>
+  The process of "sharpening" occurred by convolving the original image with a Gaussian filter to get the low frequencies of the image. These low frequencies are then subtracted from
+  the original image to give us the high frequencies. These high frequencies are then added back to the original image (multiplied by a constant) to then get the final sharpened version
+  of the original image. For this part, I used a Gaussian filter with kernel size 9 and sigma 2. The constant alpha, that is part of the sharpening process, was chosen to be 2.
+</p>
+<p>
+  I first sharpened a picture of the Taj Mahal and then re-sharpened it for evaluation purposes.
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="data/taj.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Original Image</figcaption>
+        </td>
+        <td>
+          <img src="output/taj_blur.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blurred Image</figcaption>
+        </td>
+        <td>
+          <img src="output/taj_high_freq.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High Frequency Component of Image</figcaption>
+        </td>
+        <td>
+          <img src="output/taj_sharp.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Sharpened Image</figcaption>
+        </td>
+        <td>
+          <img src="output/sharp_taj_sharp.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Re-Sharpened Image</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+<p>
+  I notice that the re-sharpened image has been further sharpened, even beyond the original sharpening of the Taj image. My understanding is that the high frequency components that were
+  added back to the original image were once again multiplied by the constant and added with an even bigger magnitude, leading to excessive sharpening. This produced a very grainy, not very
+  aesthetic image.
+</p>
+<p>
+  Here are some more results of the "sharpening" process:
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="data/circuit.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Original Image</figcaption>
+        </td>
+        <td>
+          <img src="output/circuit_blur.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blurred Image</figcaption>
+        </td>
+        <td>
+          <img src="output/circuit_high_freq.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High Frequency Component of Image</figcaption>
+        </td>
+        <td>
+          <img src="output/circuit_sharp.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Sharpened Image</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="data/gateway.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Original Image</figcaption>
+        </td>
+        <td>
+          <img src="output/gateway_blur.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blurred Image</figcaption>
+        </td>
+        <td>
+          <img src="output/gateway_high_freq.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High Frequency Component of Image</figcaption>
+        </td>
+        <td>
+          <img src="output/gateway_sharp.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Sharpened Image</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="data/temple.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Original Image</figcaption>
+        </td>
+        <td>
+          <img src="output/temple_blur.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blurred Image</figcaption>
+        </td>
+        <td>
+          <img src="output/temple_high_freq.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High Frequency Component of Image</figcaption>
+        </td>
+        <td>
+          <img src="output/temple_sharp.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Sharpened Image</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+
+<h3 align="middle">Part 2.2: Hybrid Images</h3>
+<p>
+  In this process, I generated hybrid images by merging two pictures. First, I converted both images to grayscale. To align them perfectly, I used two reference points, typically the eyes. I then applied a low-pass 
+  filter to one image and a high-pass filter to the other, which I derived by subtracting the low-pass filtered version from the original. Combining these processed images resulted in the final hybrid image.
+</p>
+<p>
+  I first tried this process on the reference images of Derek and his late cat, Nutmeg. I used sigma of 20 for Nutmeg and sigma of 10 for Derek:
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="hybrid_python/DerekPicture.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Derek</figcaption>
+        </td>
+        <td>
+          <img src="hybrid_python/nutmeg.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Nutmeg</figcaption>
+        </td>
+        <td>
+          <img src="output/derekLow.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Low frequencies of Derek</figcaption>
+        </td>
+        <td>
+          <img src="output/nutmegHi.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High frequencies of Nutmeg</figcaption>
+        </td>
+        <td>
+          <img src="output/nutmegXderek.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Hybrid</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <br/>
+  I then performed this procedure on a few images of my choice. My favourite was the hybrid of a wolf and a tiger. I used sigma of 3 for both the wolf and the tiger. Below each
+  image is its 2D Fourier Transform. 
+  <br/>
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="hybrid_python/tiger.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Tiger</figcaption>
+        </td>
+        <td>
+          <img src="hybrid_python/wolf.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Wolf</figcaption>
+        </td>
+        <td>
+          <img src="output/tigerLow.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Low frequencies of Tiger</figcaption>
+        </td>
+        <td>
+          <img src="output/wolfHi.jpg" align="left" width="300px"/>
+          <figcaption align="middle">High frequencies of Wolf</figcaption>
+        </td>
+        <td>
+          <img src="output/wolfXtiger.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Hybrid (Scary!)</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/tiger_ff.jpg" align="left" width="300px"/>
+          <figcaption align="middle">2D Fourier Transform</figcaption>
+        </td>
+        <td>
+          <img src="output/wolf_ff.jpg" align="left" width="300px"/>
+          <figcaption align="middle">2D Fourier Transform</figcaption>
+        </td>
+        <td>
+          <img src="output/tiger_low_ff.jpg" align="left" width="300px"/>
+          <figcaption align="middle">2D Fourier Transform</figcaption>
+        </td>
+        <td>
+          <img src="output/wolf_high_ff.jpg" align="left" width="300px"/>
+          <figcaption align="middle">2D Fourier Transform</figcaption>
+        </td>
+        <td>
+          <img src="output/tigerXwolf_ff.jpg" align="left" width="300px"/>
+          <figcaption align="middle">2D Fourier Transform</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <br/>
+  Here are some more images. Sigmas of 10 and 5 were used for Kanye and the dog and sigmas of 3 were used for both the runner and the walker:
+  <br/>
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="hybrid_python/walking.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Walking</figcaption>
+        </td>
+        <td>
+          <img src="hybrid_python/running.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Running</figcaption>
+        </td>
+        <td>
+          <img src="output/runningXwalking.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Existential Crisis</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="hybrid_python/mop_dog.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Mop Dog</figcaption>
+        </td>
+        <td>
+          <img src="hybrid_python/kanye.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Ye</figcaption>
+        </td>
+        <td>
+          <img src="output/dogXkanye.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Mop Ye</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+  The image of the hybrid dog and Kanye West seemed to have failed. This might be because of the mismatch in face shape and size between the two images.
+  The "mop dog" image also introduced some artefacts into the hybrid image which might be an indicator of poor original image construction
+</p>
+
+<h3 align="middle">Part 2.3: Gaussian and Laplacian Stacks</h3>
+<p>
+  Here I created fucntions to create Gaussian and Laplacian stacks of images. I created a depth 10 stack where each image in the Gaussian stack is convolved one more time than the last
+  using a Gausssian filter of size 15 with a sigma of 5. The Laplacian stack is then created by repeatedly subtracting 2 consecutive images from the Guassian stack and storing the result.
+  <br/>
+  Here is a visualization of the Gaussian and Laplacian stacks for the "Oraple" (1 indexed):
+  <div align="left">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/oraple_gs0.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 1</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_gs2.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 3</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_gs4.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 5</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_gs6.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 7</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_gs8.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 9</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_gs9.jpg" align="left" width="300px"/>
+          <figcaption align="middle">GS: Depth 10</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/oraple_ls0.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 1</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_ls2.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 3</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_ls4.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 5</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_ls6.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 7</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_ls8.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 9</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_ls9.jpg" align="left" width="300px"/>
+          <figcaption align="middle">LS: Depth 10</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+
+<h3 align="middle">Part 2.4: Multiresolution Blending</h3>
+<p>
+  In sections 2.3 and 2.4, I blend an apple and orange image to form an 'oraple' using multi-resolution techniques. Utilizing the Gaussian and Laplacian stacks from 2.3, I ensure a smooth blend.
+
+I craft a mask of the same size as the images, setting the left half's values to 1s and the rest to 0. I make 10 versions of this mask, matching the Gaussian/Laplacian stack levels. I then apply a Gaussian filter with a kernel size of 30 and sigma of 10, mirroring the approach for the apple and orange Gaussian stacks.
+
+To compute the 'oraple', I employ the formula: 
+\( \text{out} += \text{mask_stack}[i] \times \text{im1_laplacian_stack}[i] + (1 - \text{mask_stack}[i]) \times \text{im2_laplacian_stack}[i] \)
+for each level \( i \) where im1 is the apple and im2 is the orange. The final output is normalized before saving. 
+</p>
+<p>An illustrative mask image is provided below.</p>
+<img src="output/mask_vertical.jpg" align="middle" width="400px"/>
+<figcaption align="middle">Vertical Mask</figcaption>
+
+<p>Here are the original apple and orange images:
+<table style="width=100%">
+  <tr>
+    <td>
+      <img src="spline/apple.jpg" align="middle" width="400px"/>
+      <figcaption align="middle">Apple</figcaption>
+    </td>
+    <td>
+      <img src="spline/orange.jpg" align="middle" width="400px"/>
+      <figcaption align="middle">Orange</figcaption>
+    </td>
+  </tr>
+</table>
+</p>
+
+<p>
+  Now I will showcase the mask with respect to each image, the blending process, and the final image.
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/oraple_left_0.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Left: Depth 1</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_left_4.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Left: Depth 5</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_left_8.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Left: Depth 9</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/oraple_right_0.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Right: Depth 1</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_right_4.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Right: Depth 5</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_right_8.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Right: Depth 9</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="output/oraple_blend_0.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blend: Depth 1</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_blend_4.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blend: Depth 5</figcaption>
+        </td>
+        <td>
+          <img src="output/oraple_blend_8.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Blend: Depth 9</figcaption>
+        </td>
+      </tr>
+    </table>
+    <br/>
+    <tr>
+      <td>
+        <img src="output/oraple_blend_final" align="middle" width="400px"/>
+        <figcaption align="middle">Final Oraple</figcaption>
+      </td>
+    </tr>
+  </div>
+</p>
+<p>
+  I even worked on these blends, one using a horizontal mask for blending, and the other using an irregular mask for blending:
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="spline/ocean.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Ocean</figcaption>
+        </td>
+        <td>
+          <img src="spline/fire.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Fire</figcaption>
+        </td>
+        <td>
+          <img src="output/mask_horizontal.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Horizontal Mask</figcaption>
+        </td>
+        <td>
+          <img src="output/ficean_blend_final.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Ocean of fire</figcaption>
+        </td>
+      </tr>
+    </table>
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="spline/space.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Space</figcaption>
+        </td>
+        <td>
+          <img src="spline/trump.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Trump</figcaption>
+        </td>
+        <td>
+          <img src="output/mask_irregular.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Irregular Mask</figcaption>
+        </td>
+        <td>
+          <img src="output/spaceTrump_blend_final.jpg" align="left" width="300px"/>
+          <figcaption align="middle">Making space great again?</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+</p>
+<p> Great project!</p>
+<p> Most images used in the project have just been selected from Google images. </p>
+</body>
+</html>
