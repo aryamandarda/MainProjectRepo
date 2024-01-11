@@ -3,6 +3,7 @@ Aryaman Darda
 aryaman_darda@berkeley.edu
 
 Description:
+To view the full project descriptions and code, please visit this webpage: https://inst.eecs.berkeley.edu/~cs180/fa23/upload/files/proj6/aryaman_darda
 
 Neural Style Transfer:
 	-> ArtisticStyleTransfer.ipynb: File to execute code
