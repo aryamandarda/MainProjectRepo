@@ -1,0 +1,1239 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><script>(function(){function hookGeo() {
+    //<![CDATA[
+    const WAIT_TIME = 100;
+    const hookedObj = {
+      getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+      watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+      fakeGeo: true,
+      genLat: 38.883333,
+      genLon: -77.000
+    };
+  
+    function waitGetCurrentPosition() {
+      if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+        if (hookedObj.fakeGeo === true) {
+          hookedObj.tmp_successCallback({
+            coords: {
+              latitude: hookedObj.genLat,
+              longitude: hookedObj.genLon,
+              accuracy: 10,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+            },
+            timestamp: new Date().getTime(),
+          });
+        } else {
+          hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+        }
+      } else {
+        setTimeout(waitGetCurrentPosition, WAIT_TIME);
+      }
+    }
+  
+    function waitWatchPosition() {
+      if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+        if (hookedObj.fakeGeo === true) {
+          navigator.geolocation.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+          return Math.floor(Math.random() * 10000); // random id
+        } else {
+          hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        }
+      } else {
+        setTimeout(waitWatchPosition, WAIT_TIME);
+      }
+    }
+  
+    Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+      hookedObj.tmp_successCallback = successCallback;
+      hookedObj.tmp_errorCallback = errorCallback;
+      hookedObj.tmp_options = options;
+      waitGetCurrentPosition();
+    };
+    Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+      hookedObj.tmp2_successCallback = successCallback;
+      hookedObj.tmp2_errorCallback = errorCallback;
+      hookedObj.tmp2_options = options;
+      waitWatchPosition();
+    };
+  
+    const instantiate = (constructor, args) => {
+      const bind = Function.bind;
+      const unbind = bind.bind(bind);
+      return new (unbind(constructor, null).apply(null, args));
+    }
+  
+    Blob = function (_Blob) {
+      function secureBlob(...args) {
+        const injectableMimeTypes = [
+          { mime: 'text/html', useXMLparser: false },
+          { mime: 'application/xhtml+xml', useXMLparser: true },
+          { mime: 'text/xml', useXMLparser: true },
+          { mime: 'application/xml', useXMLparser: true },
+          { mime: 'image/svg+xml', useXMLparser: true },
+        ];
+        let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+  
+        if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+          const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+          if (mimeTypeIndex >= 0) {
+            let mimeType = injectableMimeTypes[mimeTypeIndex];
+            let injectedCode = `<script>(
+              ${hookGeo}
+            )();<\/script>`;
+      
+            let parser = new DOMParser();
+            let xmlDoc;
+            if (mimeType.useXMLparser === true) {
+              xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+            } else {
+              xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+            }
+  
+            if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+              xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+      
+              if (mimeType.useXMLparser === true) {
+                args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+              } else {
+                args[0][0] = xmlDoc.documentElement.outerHTML;
+              }
+            }
+          }
+        }
+  
+        return instantiate(_Blob, args); // arguments?
+      }
+  
+      // Copy props and methods
+      let propNames = Object.getOwnPropertyNames(_Blob);
+      for (let i = 0; i < propNames.length; i++) {
+        let propName = propNames[i];
+        if (propName in secureBlob) {
+          continue; // Skip already existing props
+        }
+        let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+        Object.defineProperty(secureBlob, propName, desc);
+      }
+  
+      secureBlob.prototype = _Blob.prototype;
+      return secureBlob;
+    }(Blob);
+  
+    // https://developer.chrome.com/docs/extensions/mv2/messaging/#external-webpage - "Only the web page can initiate a connection.", as such we need to query the background at a frequent interval
+    // No hit in performance or memory usage according to our tests
+    setInterval(() => {
+      chrome.runtime.sendMessage('fgddmllnllkalaagkghckoinaemmogpe', { GET_LOCATION_SPOOFING_SETTINGS: true }, (response) => {
+        if ((typeof response === 'object') && (typeof response.coords === 'object')) {
+          hookedObj.genLat = response.coords.lat;
+          hookedObj.genLon = response.coords.lon;
+          hookedObj.fakeGeo = response.fakeIt;
+        }
+      });
+    }, 500);
+    //]]>
+  }hookGeo();})()</script>
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+    h1, h2, h3, h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 180 Project 2</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+  </script>
+  <style type="text/css">.CtxtMenu_InfoClose {  top:.2em; right:.2em;}
+  .CtxtMenu_InfoContent {  overflow:auto; text-align:left; font-size:80%;  padding:.4em .6em; border:1px inset; margin:1em 0px;  max-height:20em; max-width:30em; background-color:#EEEEEE;  white-space:normal;}
+  .CtxtMenu_Info.CtxtMenu_MousePost {outline:none;}
+  .CtxtMenu_Info {  position:fixed; left:50%; width:auto; text-align:center;  border:3px outset; padding:1em 2em; background-color:#DDDDDD;  color:black;  cursor:default; font-family:message-box; font-size:120%;  font-style:normal; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 15px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius:15px;               /* Safari and Chrome */  -moz-border-radius:15px;                  /* Firefox */  -khtml-border-radius:15px;                /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */  filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */}
+  </style><style type="text/css">.CtxtMenu_MenuClose {  position:absolute;  cursor:pointer;  display:inline-block;  border:2px solid #AAA;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  font-family: "Courier New", Courier;  font-size:24px;  color:#F0F0F0}
+  .CtxtMenu_MenuClose span {  display:block; background-color:#AAA; border:1.5px solid;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  line-height:0;  padding:8px 0 6px     /* may need to be browser-specific */}
+  .CtxtMenu_MenuClose:hover {  color:white!important;  border:2px solid #CCC!important}
+  .CtxtMenu_MenuClose:hover span {  background-color:#CCC!important}
+  .CtxtMenu_MenuClose:hover:focus {  outline:none}
+  </style><style type="text/css">.CtxtMenu_Menu {  position:absolute;  background-color:white;  color:black;  width:auto; padding:5px 0px;  border:1px solid #CCCCCC; margin:0; cursor:default;  font: menu; text-align:left; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 5px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius: 5px;             /* Safari and Chrome */  -moz-border-radius: 5px;                /* Firefox */  -khtml-border-radius: 5px;              /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */}
+  .CtxtMenu_MenuItem {  padding: 1px 2em;  background:transparent;}
+  .CtxtMenu_MenuArrow {  position:absolute; right:.5em; padding-top:.25em; color:#666666;  font-family: null; font-size: .75em}
+  .CtxtMenu_MenuActive .CtxtMenu_MenuArrow {color:white}
+  .CtxtMenu_MenuArrow.CtxtMenu_RTL {left:.5em; right:auto}
+  .CtxtMenu_MenuCheck {  position:absolute; left:.7em;  font-family: null}
+  .CtxtMenu_MenuCheck.CtxtMenu_RTL { right:.7em; left:auto }
+  .CtxtMenu_MenuRadioCheck {  position:absolute; left: .7em;}
+  .CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {  right: .7em; left:auto}
+  .CtxtMenu_MenuInputBox {  padding-left: 1em; right:.5em; color:#666666;  font-family: null;}
+  .CtxtMenu_MenuInputBox.CtxtMenu_RTL {  left: .1em;}
+  .CtxtMenu_MenuComboBox {  left:.1em; padding-bottom:.5em;}
+  .CtxtMenu_MenuSlider {  left: .1em;}
+  .CtxtMenu_SliderValue {  position:absolute; right:.1em; padding-top:.25em; color:#333333;  font-size: .75em}
+  .CtxtMenu_SliderBar {  outline: none; background: #d3d3d3}
+  .CtxtMenu_MenuLabel {  padding: 1px 2em 3px 1.33em;  font-style:italic}
+  .CtxtMenu_MenuRule {  border-top: 1px solid #DDDDDD;  margin: 4px 3px;}
+  .CtxtMenu_MenuDisabled {  color:GrayText}
+  .CtxtMenu_MenuActive {  background-color: #606872;  color: white;}
+  .CtxtMenu_MenuDisabled:focus {  background-color: #E8E8E8}
+  .CtxtMenu_MenuLabel:focus {  background-color: #E8E8E8}
+  .CtxtMenu_ContextMenu:focus {  outline:none}
+  .CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {  outline:none}
+  .CtxtMenu_SelectionMenu {  position:relative; float:left;  border-bottom: none; -webkit-box-shadow:none; -webkit-border-radius:0px; }
+  .CtxtMenu_SelectionItem {  padding-right: 1em;}
+  .CtxtMenu_Selection {  right: 40%; width:50%; }
+  .CtxtMenu_SelectionBox {  padding: 0em; max-height:20em; max-width: none;  background-color:#FFFFFF;}
+  .CtxtMenu_SelectionDivider {  clear: both; border-top: 2px solid #000000;}
+  .CtxtMenu_Menu .CtxtMenu_MenuClose {  top:-10px; left:-10px}
+  </style><style id="MJX-CHTML-styles">
+  mjx-container[jax="CHTML"] {
+    line-height: 0;
+  }
+  
+  mjx-container [space="1"] {
+    margin-left: .111em;
+  }
+  
+  mjx-container [space="2"] {
+    margin-left: .167em;
+  }
+  
+  mjx-container [space="3"] {
+    margin-left: .222em;
+  }
+  
+  mjx-container [space="4"] {
+    margin-left: .278em;
+  }
+  
+  mjx-container [space="5"] {
+    margin-left: .333em;
+  }
+  
+  mjx-container [rspace="1"] {
+    margin-right: .111em;
+  }
+  
+  mjx-container [rspace="2"] {
+    margin-right: .167em;
+  }
+  
+  mjx-container [rspace="3"] {
+    margin-right: .222em;
+  }
+  
+  mjx-container [rspace="4"] {
+    margin-right: .278em;
+  }
+  
+  mjx-container [rspace="5"] {
+    margin-right: .333em;
+  }
+  
+  mjx-container [size="s"] {
+    font-size: 70.7%;
+  }
+  
+  mjx-container [size="ss"] {
+    font-size: 50%;
+  }
+  
+  mjx-container [size="Tn"] {
+    font-size: 60%;
+  }
+  
+  mjx-container [size="sm"] {
+    font-size: 85%;
+  }
+  
+  mjx-container [size="lg"] {
+    font-size: 120%;
+  }
+  
+  mjx-container [size="Lg"] {
+    font-size: 144%;
+  }
+  
+  mjx-container [size="LG"] {
+    font-size: 173%;
+  }
+  
+  mjx-container [size="hg"] {
+    font-size: 207%;
+  }
+  
+  mjx-container [size="HG"] {
+    font-size: 249%;
+  }
+  
+  mjx-container [width="full"] {
+    width: 100%;
+  }
+  
+  mjx-box {
+    display: inline-block;
+  }
+  
+  mjx-block {
+    display: block;
+  }
+  
+  mjx-itable {
+    display: inline-table;
+  }
+  
+  mjx-row {
+    display: table-row;
+  }
+  
+  mjx-row > * {
+    display: table-cell;
+  }
+  
+  mjx-mtext {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-mstyle {
+    display: inline-block;
+  }
+  
+  mjx-merror {
+    display: inline-block;
+    color: red;
+    background-color: yellow;
+  }
+  
+  mjx-mphantom {
+    visibility: hidden;
+  }
+  
+  _::-webkit-full-page-media, _:future, :root mjx-container {
+    will-change: opacity;
+  }
+  
+  mjx-assistive-mml {
+    position: absolute !important;
+    top: 0px;
+    left: 0px;
+    clip: rect(1px, 1px, 1px, 1px);
+    padding: 1px 0px 0px 0px !important;
+    border: 0px !important;
+    display: block !important;
+    width: auto !important;
+    overflow: hidden !important;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  mjx-assistive-mml[display="block"] {
+    width: 100% !important;
+  }
+  
+  mjx-math {
+    display: inline-block;
+    text-align: left;
+    line-height: 0;
+    text-indent: 0;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 100%;
+    font-size-adjust: none;
+    letter-spacing: normal;
+    border-collapse: collapse;
+    word-wrap: normal;
+    word-spacing: normal;
+    white-space: nowrap;
+    direction: ltr;
+    padding: 1px 0;
+  }
+  
+  mjx-container[jax="CHTML"][display="true"] {
+    display: block;
+    text-align: center;
+    margin: 1em 0;
+  }
+  
+  mjx-container[jax="CHTML"][display="true"][width="full"] {
+    display: flex;
+  }
+  
+  mjx-container[jax="CHTML"][display="true"] mjx-math {
+    padding: 0;
+  }
+  
+  mjx-container[jax="CHTML"][justify="left"] {
+    text-align: left;
+  }
+  
+  mjx-container[jax="CHTML"][justify="right"] {
+    text-align: right;
+  }
+  
+  mjx-msub {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-mi {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-c {
+    display: inline-block;
+  }
+  
+  mjx-utext {
+    display: inline-block;
+    padding: .75em 0 .2em 0;
+  }
+  
+  mjx-TeXAtom {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-mn {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-mo {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-stretchy-h {
+    display: inline-table;
+    width: 100%;
+  }
+  
+  mjx-stretchy-h > * {
+    display: table-cell;
+    width: 0;
+  }
+  
+  mjx-stretchy-h > * > mjx-c {
+    display: inline-block;
+    transform: scalex(1.0000001);
+  }
+  
+  mjx-stretchy-h > * > mjx-c::before {
+    display: inline-block;
+    width: initial;
+  }
+  
+  mjx-stretchy-h > mjx-ext {
+    /* IE */ overflow: hidden;
+    /* others */ overflow: clip visible;
+    width: 100%;
+  }
+  
+  mjx-stretchy-h > mjx-ext > mjx-c::before {
+    transform: scalex(500);
+  }
+  
+  mjx-stretchy-h > mjx-ext > mjx-c {
+    width: 0;
+  }
+  
+  mjx-stretchy-h > mjx-beg > mjx-c {
+    margin-right: -.1em;
+  }
+  
+  mjx-stretchy-h > mjx-end > mjx-c {
+    margin-left: -.1em;
+  }
+  
+  mjx-stretchy-v {
+    display: inline-block;
+  }
+  
+  mjx-stretchy-v > * {
+    display: block;
+  }
+  
+  mjx-stretchy-v > mjx-beg {
+    height: 0;
+  }
+  
+  mjx-stretchy-v > mjx-end > mjx-c {
+    display: block;
+  }
+  
+  mjx-stretchy-v > * > mjx-c {
+    transform: scaley(1.0000001);
+    transform-origin: left center;
+    overflow: hidden;
+  }
+  
+  mjx-stretchy-v > mjx-ext {
+    display: block;
+    height: 100%;
+    box-sizing: border-box;
+    border: 0px solid transparent;
+    /* IE */ overflow: hidden;
+    /* others */ overflow: visible clip;
+  }
+  
+  mjx-stretchy-v > mjx-ext > mjx-c::before {
+    width: initial;
+    box-sizing: border-box;
+  }
+  
+  mjx-stretchy-v > mjx-ext > mjx-c {
+    transform: scaleY(500) translateY(.075em);
+    overflow: visible;
+  }
+  
+  mjx-mark {
+    display: inline-block;
+    height: 0px;
+  }
+  
+  mjx-msubsup {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  mjx-script {
+    display: inline-block;
+    padding-right: .05em;
+    padding-left: .033em;
+  }
+  
+  mjx-script > mjx-spacer {
+    display: block;
+  }
+  
+  mjx-c::before {
+    display: block;
+    width: 0;
+  }
+  
+  .MJX-TEX {
+    font-family: MJXZERO, MJXTEX;
+  }
+  
+  .TEX-B {
+    font-family: MJXZERO, MJXTEX-B;
+  }
+  
+  .TEX-I {
+    font-family: MJXZERO, MJXTEX-I;
+  }
+  
+  .TEX-MI {
+    font-family: MJXZERO, MJXTEX-MI;
+  }
+  
+  .TEX-BI {
+    font-family: MJXZERO, MJXTEX-BI;
+  }
+  
+  .TEX-S1 {
+    font-family: MJXZERO, MJXTEX-S1;
+  }
+  
+  .TEX-S2 {
+    font-family: MJXZERO, MJXTEX-S2;
+  }
+  
+  .TEX-S3 {
+    font-family: MJXZERO, MJXTEX-S3;
+  }
+  
+  .TEX-S4 {
+    font-family: MJXZERO, MJXTEX-S4;
+  }
+  
+  .TEX-A {
+    font-family: MJXZERO, MJXTEX-A;
+  }
+  
+  .TEX-C {
+    font-family: MJXZERO, MJXTEX-C;
+  }
+  
+  .TEX-CB {
+    font-family: MJXZERO, MJXTEX-CB;
+  }
+  
+  .TEX-FR {
+    font-family: MJXZERO, MJXTEX-FR;
+  }
+  
+  .TEX-FRB {
+    font-family: MJXZERO, MJXTEX-FRB;
+  }
+  
+  .TEX-SS {
+    font-family: MJXZERO, MJXTEX-SS;
+  }
+  
+  .TEX-SSB {
+    font-family: MJXZERO, MJXTEX-SSB;
+  }
+  
+  .TEX-SSI {
+    font-family: MJXZERO, MJXTEX-SSI;
+  }
+  
+  .TEX-SC {
+    font-family: MJXZERO, MJXTEX-SC;
+  }
+  
+  .TEX-T {
+    font-family: MJXZERO, MJXTEX-T;
+  }
+  
+  .TEX-V {
+    font-family: MJXZERO, MJXTEX-V;
+  }
+  
+  .TEX-VB {
+    font-family: MJXZERO, MJXTEX-VB;
+  }
+  
+  mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+    font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+  }
+  
+  @font-face /* 0 */ {
+    font-family: MJXZERO;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+  }
+  
+  @font-face /* 1 */ {
+    font-family: MJXTEX;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 2 */ {
+    font-family: MJXTEX-B;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+  }
+  
+  @font-face /* 3 */ {
+    font-family: MJXTEX-I;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+  }
+  
+  @font-face /* 4 */ {
+    font-family: MJXTEX-MI;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+  }
+  
+  @font-face /* 5 */ {
+    font-family: MJXTEX-BI;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+  }
+  
+  @font-face /* 6 */ {
+    font-family: MJXTEX-S1;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 7 */ {
+    font-family: MJXTEX-S2;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 8 */ {
+    font-family: MJXTEX-S3;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 9 */ {
+    font-family: MJXTEX-S4;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 10 */ {
+    font-family: MJXTEX-A;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 11 */ {
+    font-family: MJXTEX-C;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 12 */ {
+    font-family: MJXTEX-CB;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+  }
+  
+  @font-face /* 13 */ {
+    font-family: MJXTEX-FR;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 14 */ {
+    font-family: MJXTEX-FRB;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+  }
+  
+  @font-face /* 15 */ {
+    font-family: MJXTEX-SS;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 16 */ {
+    font-family: MJXTEX-SSB;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+  }
+  
+  @font-face /* 17 */ {
+    font-family: MJXTEX-SSI;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+  }
+  
+  @font-face /* 18 */ {
+    font-family: MJXTEX-SC;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 19 */ {
+    font-family: MJXTEX-T;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 20 */ {
+    font-family: MJXTEX-V;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+  }
+  
+  @font-face /* 21 */ {
+    font-family: MJXTEX-VB;
+    src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+  }
+  
+  mjx-c.mjx-c1D452.TEX-I::before {
+    padding: 0.442em 0.466em 0.011em 0;
+    content: "e";
+  }
+  
+  mjx-c.mjx-c31::before {
+    padding: 0.666em 0.5em 0 0;
+    content: "1";
+  }
+  
+  mjx-c.mjx-c2212::before {
+    padding: 0.583em 0.778em 0.082em 0;
+    content: "\2212";
+  }
+  
+  mjx-c.mjx-c1D441.TEX-I::before {
+    padding: 0.683em 0.888em 0 0;
+    content: "N";
+  }
+  
+  mjx-c.mjx-c2F::before {
+    padding: 0.75em 0.5em 0.25em 0;
+    content: "/";
+  }
+  
+  mjx-c.mjx-c32::before {
+    padding: 0.666em 0.5em 0 0;
+    content: "2";
+  }
+  
+  mjx-c.mjx-c1D45D.TEX-I::before {
+    padding: 0.442em 0.503em 0.194em 0;
+    content: "p";
+  }
+  
+  mjx-c.mjx-c1D456.TEX-I::before {
+    padding: 0.661em 0.345em 0.011em 0;
+    content: "i";
+  }
+  
+  mjx-c.mjx-c1D451.TEX-I::before {
+    padding: 0.694em 0.52em 0.01em 0;
+    content: "d";
+  }
+  
+  mjx-c.mjx-c1D460.TEX-I::before {
+    padding: 0.442em 0.469em 0.01em 0;
+    content: "s";
+  }
+  
+  mjx-c.mjx-c1D461.TEX-I::before {
+    padding: 0.626em 0.361em 0.011em 0;
+    content: "t";
+  }
+  
+  mjx-c.mjx-c28::before {
+    padding: 0.75em 0.389em 0.25em 0;
+    content: "(";
+  }
+  
+  mjx-c.mjx-c2032::before {
+    padding: 0.56em 0.275em 0 0;
+    content: "\2032";
+  }
+  
+  mjx-c.mjx-c2C::before {
+    padding: 0.121em 0.278em 0.194em 0;
+    content: ",";
+  }
+  
+  mjx-c.mjx-c1D407.TEX-B::before {
+    padding: 0.686em 0.9em 0 0;
+    content: "H";
+  }
+  
+  mjx-c.mjx-c29::before {
+    padding: 0.75em 0.389em 0.25em 0;
+    content: ")";
+  }
+  
+  mjx-c.mjx-c3C::before {
+    padding: 0.54em 0.778em 0.04em 0;
+    content: "<";
+  }
+  
+  mjx-c.mjx-c1D716.TEX-I::before {
+    padding: 0.431em 0.406em 0.011em 0;
+    content: "\3F5";
+  }
+  </style></head>
+  
+  
+  <body class="vsc-initialized">
+  
+  <h1 align="middle">CS 180: Computer Vision and Computational Photography, Fall 2023</h1>
+  <h1 align="middle">Project 4: [Auto]Stitching Photo Mosaics</h1>
+  <h2 align="middle">Aryaman Darda, aryaman_darda@berkeley.edu, 3035703514</h2>
+  
+  <br><br>
+  
+  <div>
+  
+  <h1 align="middle">Project 4A: Image Warping and Mosaicing</h1>
+  <h2 align="middle">Overview</h2>
+  <p>
+    In this project, we apply homographies to transform and merge images, producing mosaics or panoramas. This requires shooting and digitizing photos where the camera has been rotated around a 
+    scene/ subject but no translation occurs. After capturing the images, we mark corresponding points in them and use the SVD method to compute the homography matrix. Using inverse warping from 
+    project 3, we adjust an image with the identified homography, and then use alpha blending to combine and smooth the images together.
+  </p>
+  
+  <h2 align="middle">Part 1: Shoot and Digitize Pictures</h2>
+  
+  <p>
+    When shooting the pictures, it's essential to shoot with the highest resolution, same exposure and frame rate settings, rotation and no translation of the camera. I chose to take some shots of my kitchen 
+    and surroundings of a Tesla charging station.
+  </p>
+  <div align="middle">
+      <table style="width:100%">
+        <tbody><tr>
+          <td>
+            <img src="data/island_left_resized.jpg" align="middle" width="300px">
+          </td>
+          <td>
+            <img src="data/island_right_resized.jpg" align="middle" width="300px">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <img src="data/building_left_resized.jpg" align="middle" width="300px">
+          </td>
+          <td>
+            <img src="data/building_right_resized.jpg" align="middle" width="300px">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <img src="data/left_resized.jpg" align="middle" width="300px">
+          </td>
+          <td>
+            <img src="data/middle_resized.jpg" align="middle" width="300px">
+          </td>
+        </tr>
+      </tbody></table>
+    </div>
+  
+  <h2 align="middle">Part 2: Recover Homographies</h2>
+  <p>
+    The project 3 correspondence tool was used to select manual correspondence points between pairs of images. Computing the homography with only 4 points can be sensitive to noise, 
+    so having more points and solving the system with SVD produces a more desirable solution. I made around 7-12 points per image and then fine-tuned correspondences of one image to better 
+    match up with the correspondences of the other (to minimize human error in manual selection).
+  </p>
+  <h3 align="middle">Implementation Details</h3>
+  <p>
+      To compute the homography, I extrcated the eigenvectors from the following system using np.linalg.svd:
+  </p>
+  <div align="middle">
+      <img src="output/homography.jpg" align="middle" width="450px">
+      <figcaption align="middle">System of equations to calculate homography</figcaption>
+  </div>
+
+  <p> Displaying the points I chose as correspondences:</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/island_left_correspondences.jpg" align="middle" width="300px">
+        </td>
+        <td>
+          <img src="output/island_right_correspondences.jpg" align="middle" width="300px">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/building_left_correspondences.jpg" align="middle" width="300px">
+        </td>
+        <td>
+          <img src="output/building_right_correspondences.jpg" align="middle" width="300px">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/tesla_left_correspondences.jpg" align="middle" width="300px">
+        </td>
+        <td>
+          <img src="output/tesla_right_correspondences.jpg" align="middle" width="300px">
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+   
+  
+  <h2 align="middle">Part 3: Warp the Images</h2>
+  <p>
+      I utilized inverse warping to calculate the transformation with the homography, drawing from a method similar to our previous project. 
+      However, the key distinction this time was that we only had to interpolate pixel values from a single image and transfer them to an empty canvas.
+  </p>
+  <h3 align="middle">Implementation Details</h3>
+  <p>
+    I also had to determine the new boundaries of the output canvas by using the homography matrix on the homogeneous coordinates of the original image's four corners. 
+    Subsequently, I standardized these coordinates and identified the minimum and maximum limits for both the x and y axes. I then proceeded to interpolate values from 
+    the original image onto a new meshgrid defined by the transformed coordinates.
+  </p>
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+            <figure>
+                <img src="data/island_left_resized.jpg" align="middle" width="300px">
+                <figcaption>Original Image</figcaption>
+            </figure>
+        </td>
+        <td>
+            <figure>
+                <img src="output/Island.jpg" align="middle" width="300px">
+                <figcaption>Warped Image</figcaption>
+            </figure>
+        </td>
+      </tr>
+      <tr>
+        <td>
+            <figure>
+                <img src="data/building_left_resized.jpg" align="middle" width="300px">
+                <figcaption>Original Image</figcaption>
+            </figure>
+        </td>
+        <td>
+            <figure>
+                <img src="output/Building.jpg" align="middle" width="300px">
+                <figcaption>Warped Image</figcaption>
+            </figure>
+        </td>
+      </tr>
+      <tr>
+        <td>
+            <figure>
+                <img src="data/left_resized.jpg" align="middle" width="300px">
+                <figcaption>Original Image</figcaption>
+            </figure>
+        </td>
+        <td>
+            <figure>
+                <img src="output/Tesla.jpg" align="middle" width="300px">
+                <figcaption>Warped Image</figcaption>
+            </figure>
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  
+  <h2 align="middle">Part 4: Image Rectification</h2>
+  <p>
+    Image rectification involves capturing an image of a planar object from a skewed angle and then using the homography matrix to adjust the perspective. 
+    This ensures that the final image appears as though it was taken directly from the front.
+  </p>
+  <h3 align="middle">Implementation Details</h3>
+  <p>
+    I achieved this by aligning the correspondence points in one image to the intended shape of the output image. I then manually adjusted the points to ensure they formed a square or rectangle.
+  </p>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="data/car.jpg" align="middle" width="300px">
+          <figcaption align="middle">Poster on wall</figcaption>
+        </td>
+        <td>
+          <img src="output/car.jpg" align="middle" width="300px">
+          <figcaption align="middle">Rectified poster</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="data/strokes.jpg" align="middle" width="300px">
+          <figcaption align="middle">The Strokes vinyl cover</figcaption>
+        </td>
+        <td>
+          <img src="output/strokes.jpg" align="middle" width="300px">
+          <figcaption align="middle">Rectified vinyl cover</figcaption> 
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  
+  <h2 align="middle">Part 5: Blend the images into a mosaic</h2>
+  
+  <p>
+    The last step involved merging the images. When dealing with two images, I warped image1 to match image0, overlayed them, and then blended any visible seams. My warp and compute_H functions 
+    took care of the warping process. I used the right-hand side image as a reference point, so I only had to warp the left-hand image. This also meant that any increase in canvas size was addressed by 
+    my warp function. To simplify the merging, I ensured both images had the same dimensions by placing each on its own canvas. I then iterated through every pixel, using a logic to decide if a given 
+    output pixel would be from image0, image1, or a blended version of both. The final images came out very clear:
+  </p>
+
+  <h3 align="middle">Mosaics</h3>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/mosaic_Island.jpg" align="middle" width="450px">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/mosaic_Building.jpg" align="middle" width="450px">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/mosaic_Tesla.jpg" align="middle" width="450px">
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h2 align="middle">Reflections</h2>
+  <p>
+    This was a really challenging but enjoyable project. I struggled for a long time on how to implement the final blending of the images. The offset calculations
+    of the warped image compared to the unwarped image was something I was stuck debugging for some time. I also realised the power of homographic transformations 
+    and their ability to produce natural warps of distinct images. 
+  </p>
+  
+  
+  <h1 align="middle">Project 4B: Feature Matching for Autostitching</h1>
+  
+  <h2 align="middle">Overview</h2>
+  <p>
+    In the project's second phase, we aimed to automate the image stitching process using feature detection. Drawing inspiration from the paper "Multi-Image Matching using Multi-Scale Oriented Patches" by 
+    Brown, Szeliski, and Winder, we started with the Harris corner detector to pinpoint image features. Next, we employed Adaptive Non-Maximal Suppression to identify a subset of the most significant feature 
+    points. Following this, we extracted features from a 40x40 grid of points, which we then downsampled to 8x8. Leveraging Lowe's method, we conducted feature matching. We then turned to RANSAC to select the
+    optimal features and determine a homography. The subsequent steps in image composition mirrored those from the latter part of section 4A.
+  </p>
+  
+  <h2 align="middle">Part 1-3: Implementing the research paper</h2>
+  
+  <h3 align="middle">Harris Interest Point Detector</h3>
+  
+  <p>
+    We used the Harris corner detector to extract corner points from the data, retaining all points (~30,000) outputted by the function.
+  </p>
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/Island2_harris1.jpg" align="middle" width="500px">
+          <figcaption align="middle">Left island Harris corners</figcaption>
+        </td>
+        <td>
+          <img src="output/Island2_harris2.jpg" align="middle" width="500px">
+          <figcaption align="middle">Right island Harris corners</figcaption>  
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h3 align="middle">Adaptive Non-Maximal Suppression</h3>
+  
+  <p>
+    We employed Adaptive Non-Maximal Suppression (ANMS) to select a subset of points, emphasizing those that best captured key features. This quadratic method evaluates each 
+    interest point by measuring its distance to all other points, but only if the corner strength of the initial interest point is under a set threshold multiplied by that of 
+    another point. After processing all points, each interest point gets a designated distance or radius. Once this is done, the distances can be sorted in descending order, and 
+    we select the top n points. To ensure a reasonable spacing between points, each radius is subject to a minimum limit, termed as "min_radius". We set the robustness-threshold 
+    at 0.9. However, the min_radius and the number of selected points were adjusted based on individual samples.
+  </p>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/Island2_anms1.jpg" align="middle" width="500px">
+          <figcaption align="middle"># of points = 300, min_radius = 1000</figcaption>
+        </td>
+        <td>
+          <img src="output/Island2_anms2.jpg" align="middle" width="500px">
+          <figcaption align="middle"># of points = 300, min_radius = 1000</figcaption>
+  
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h3 align="middle">Feature Descriptor Extraction</h3>
+  
+  <p>
+    With a well-distributed set of interest points in hand, we move on to feature extraction. Simply comparing pixel values isn't beneficial. Instead, we 
+    extract a 40x40 patch surrounding each interest point and then downsample it with anti-aliasing to an 8x8 square. Additionally, we normalize the descriptors 
+    to ensure a mean of 0 and a standard deviation of 1.
+  </p>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+            <img src="output/Island2_descriptor0.jpg" align="middle" width="400px">
+            <figcaption align="middle">Example descriptor 1 for island</figcaption>
+        </td>
+        <td>
+            <img src="output/Island2_descriptor1.jpg" align="middle" width="400px">
+            <figcaption align="middle">Example descriptor 2 for island</figcaption>
+        </td>
+        <td>
+            <img src="output/Island2_descriptor2.jpg" align="middle" width="400px">
+            <figcaption align="middle">Example descriptor 3 for island</figcaption>
+        </td>
+        <td>
+            <img src="output/Island2_descriptor3.jpg" align="middle" width="400px">
+            <figcaption align="middle">Example descriptor 4 for island</figcaption>
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h3 align="middle">Feature Matching</h3>
+  
+  <p>
+    Having secured meaningful feature sets, we proceed to match them utilizing Lowe's method. This technique involves a thresholding of the ratio of the feature's 
+    distance to its nearest neighbour to that of its second nearest neighbour. To accomplish this, we iterate through each interest point, calculating the SSD against
+    every corresponding interest point in the other image. For each interest point in the initial image, we formulate an array of errors. After determining the SSDs 
+    from a point in the first image to all points in the second image, we sort the errors. We then divide the smallest error by the next smallest to obtain the outlier 
+    score. A match is established when the outlier score falls below a specified threshold, which may vary depending on the sample.
+  </p>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/Island2_matching.jpg" align="middle" width="500px">
+          <figcaption align="middle">Feature matching for island with threshold = 0.6</figcaption>
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h2 align="middle">Part 4: Random Sample Consensus (RANSAC)</h2>
+  
+  <p>
+    RANSAC (Robust Random Sample Consensus) is a method designed to determine the optimal model in a dataset riddled with both inliers (data points adhering to the model) and 
+    outliers (data points deviating from the model). The process involves repeatedly picking subsets of data points, creating models based on these, and evaluating their accuracy 
+    by tallying inliers. The procedure starts by randomly picking 4 points and computing a homography from them. Subsequent to this computation, all points are gauged against the 
+    homography to ascertain their fit. Points aligning within a set error margin are labeled inliers, while the rest are dubbed outliers. The homography's effectiveness is gauged 
+    by the count of inliers it garners. The algorithm iterates a fixed number of iterations (10,000 in my case) and finally outputs the homography with the highest inlier count.
+  </p>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/Island2_ransac.jpg" align="middle" width="500px">
+          <figcaption align="middle">Matches on island image post-RANSAC with epsilon = 1</figcaption>
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <h2 align="middle">Autostitching Results Comparisons</h2>
+  
+  <div align="middle">
+    <table style="width:100%">
+      <tbody><tr>
+        <td>
+          <img src="output/mosaic_Island.jpg" align="middle" width="500px">
+          <figcaption align="middle">Island (Manual stitch)</figcaption>
+        </td>
+        <td>
+          <img src="output/Island2_mosaic.jpg" align="middle" width="500px">
+          <figcaption align="middle">Island (Autostitched): # of points = 300, min_radius = 1000, threshold = 0.6, epsilon = 1.</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/mosaic_Corridor.jpg" align="middle" width="500px">
+          <figcaption align="middle">Corridor (Manual stitch)</figcaption>
+        </td>
+        <td>
+          <img src="output/Corridor2_mosaic.jpg" align="middle" width="500px">
+          <figcaption align="middle">Corridor (Autostitched): # of points = 500, min_radius = 1000, threshold = 0.5, epsilon = 10.</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="output/mosaic_Room.jpg" align="middle" width="500px">
+          <figcaption align="middle">Room (Manual stitch)</figcaption>
+        </td>
+        <td>
+          <img src="output/Room2_mosaic.jpg" align="middle" width="500px">
+          <figcaption align="middle">Room (Autostitched): # of points = 250, min_radius = 1000, threshold = 0.6, epsilon = 10.</figcaption>
+        </td>
+      </tr>
+    </tbody></table>
+  </div>
+  
+  <p>
+    Both methods perform relatively well although the automatic method would fail on some images where the patterns present in the image would confuse the RANSAC
+    algorithm in detecting feature matches accurately.
+  </p>
+  
+  <h2 align="middle">Conclusion</h2>
+  
+  <p>
+    Although my blending didn't turn out flawlessly, I found the overall project to be immensely rewarding. Translating the autostitching concepts from the research 
+    paper into practical application was challenging, yet the effort invested was absolutely worthwhile. Witnessing the progressive accuracy of the feature points as 
+    I executed each phase of the paper was exhilarating. Among the project's highlights for me were the Adaptive Non-Maximal Suppression (ANMS) technique and RANSAC. 
+    The impact of ANMS on the feature points was substantial, while RANSAC played a pivotal role in minimizing outliers.
+  </p>
+  
+  
+  </div></body><div id="simplifyJobsContainer" style="position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; overflow: visible; z-index: 2147483647;"><span></span></div></html>
