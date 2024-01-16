@@ -7,3 +7,5 @@ This work demonstrates the use of PaddleOCR in basic text detection and recognit
 Usage:
 'Train PaddleOCR.ipynb': main notebook to run code for text detection and recognition. 
 'configs': contains configs for the recognition and detection models based on specific datasets.
+
+Reach out to aryamandarda@gmail.com with any questions.
